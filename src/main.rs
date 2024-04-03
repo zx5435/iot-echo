@@ -6,12 +6,12 @@ mod utils;
 extern crate paho_mqtt as mqtt;
 
 use chrono::Local;
+use dirs;
 use env_logger::Builder;
+use log::{info, LevelFilter};
+use model::vo::ConfigYml;
 use std::io::Write;
 use std::{fs, process, thread, time::Duration};
-
-use crate::model::vo::ConfigYml;
-use log::{info, LevelFilter};
 
 // Subscribe to a single topic.
 fn subscribe_topic(cli: &mqtt::Client, topic: &str) {
@@ -52,7 +52,8 @@ fn main() {
         .filter(None, LevelFilter::Info)
         .init();
 
-    let f = fs::read_to_string(r"C:\Users\106006\.iot-echo\config.yaml").unwrap();
+    let configFile = dirs::home_dir().unwrap().join(".iot-echo").join("config.yaml").display().to_string();
+    let f = fs::read_to_string(configFile).unwrap();
     let config: ConfigYml = serde_yaml::from_str(&f).expect("error yaml");
     info!("config = {:#?}", config);
     let (connOpt1, connOpt2) = utils::getConnOpt(&config);
