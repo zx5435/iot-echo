@@ -1,21 +1,21 @@
 #![allow(non_snake_case)]
 
+// extern crate paho_mqtt as mqtt;
+
+mod handle;
 mod model;
 mod utils;
 
-extern crate paho_mqtt as mqtt;
-
+use crate::handle::rpcHandle;
+use crate::utils::{getConn, loadConfig};
 use chrono::Local;
 use ctrlc;
-use dirs;
 use env_logger::Builder;
-use log::{error, info, LevelFilter};
-use model::vo::ConfigYml;
-use mqtt::{Client, Message};
+use log::{info, LevelFilter};
+use paho_mqtt::{Client, Message};
 use std::io::Write;
 use std::sync::mpsc::channel;
-use std::{fs, process, thread, time::Duration};
-use std::sync::Arc;
+use std::{process, thread, time::Duration};
 
 // Subscribe to a single topic.
 fn subscribe_topic(cli: &Client, topic: &str) {
@@ -55,23 +55,20 @@ fn main() {
         .filter(None, LevelFilter::Info)
         .init();
 
-    let configFile = dirs::home_dir().unwrap().join(".iot-echo").join("config.yaml").display().to_string();
-    let f = fs::read_to_string(configFile).unwrap();
-    let config: ConfigYml = serde_yaml::from_str(&f).expect("error yaml");
-    info!("config = {:#?}", config);
-    let (connOpt1, connOpt2) = utils::getConnOpt(&config);
+    let config = loadConfig();
+    let (connCfg, connAuth) = getConn(&config);
 
     // Create a mqtt client.
-    let insMqtt = Client::new(connOpt1).unwrap_or_else(|err| {
+    let mqIns = Client::new(connCfg).unwrap_or_else(|err| {
         info!("Failed to create mqtt client: {:?}", err);
         process::exit(1);
     });
 
     // Define consumer
-    let rxConsumer = insMqtt.start_consuming();
+    let mqReceiver = mqIns.start_consuming();
 
     // Connect and wait for results.
-    if let Err(e) = insMqtt.connect(connOpt2) {
+    if let Err(e) = mqIns.connect(connAuth) {
         info!("Failed to connect: {:?}", e);
         process::exit(1);
     }
@@ -80,14 +77,14 @@ fn main() {
     let pk = config.device.productKey;
     let dn = config.device.deviceName;
     let sub_topic = format!("/{}/{}/user/get", pk, dn);
-    subscribe_topic(&insMqtt, &sub_topic);
+    subscribe_topic(&mqIns, &sub_topic);
     info!("sub topic {}", sub_topic);
 
     // Publish to topic "/${productKey}/${deviceName}/user/get"
     let topic_update = format!("/{}/{}/user/update", pk, dn);
     let payload = "{\"cpu\":23}".to_string();
     let msg = Message::new(topic_update.clone(), payload.clone(), 0);
-    if let Err(e) = insMqtt.publish(msg) {
+    if let Err(e) = mqIns.publish(msg) {
         info!("Failed to subscribes topic: {:?}", e);
         process::exit(1);
     }
@@ -105,14 +102,14 @@ fn main() {
     // let t2 = Arc::clone(&t0);
 
     thread::spawn(move || {
-        for message in rxConsumer.iter() {
+        for message in mqReceiver.iter() {
             if let Some(message) = message {
                 info!("{}", message);
 
                 let rpcPrefix1 = format!("/sys/{}/{}/rrpc/request/", pk, dn);
                 let rpcPrefix2 = format!("/sys/{}/{}/rrpc/response/", pk, dn);
                 if message.topic().contains(&rpcPrefix1) {
-                    rpcHandle(message, rpcPrefix2, &insMqtt);
+                    rpcHandle(message, rpcPrefix2, &mqIns);
                 }
             }
         }
@@ -137,40 +134,13 @@ fn main() {
         //         break;
         //     }
         // }
-        let msg = Message::new(topic_update.clone(), r#"{"cpu": 9}"#, 0);
+        let _msg = Message::new(topic_update.clone(), r#"{"cpu": 9}"#, 0);
         // if let Err(e) = insMqtt.publish(msg) {
         //     error!("Failed to send topic: {:?}", e);
         //     process::exit(1);
         // }
 
-        info!("3s to send");
-        thread::sleep(Duration::from_secs(3));
-    }
-}
-
-fn rpcHandle(message: Message, rpcPrefix2: String, insMqtt: &Client) {
-    let topic = message.topic();
-
-    let uuid = topic[topic.rfind('/').unwrap() + 1..].to_string();
-    let topicRet = format!("{}{}", rpcPrefix2, uuid);
-    let payload = std::str::from_utf8(message.payload()).unwrap_or("err");
-    info!("uuid = {} payload = {}", uuid, payload);
-
-    let body = match payload {
-        "LoadConfigInputs" => "any config",
-        "ip addr" => {
-            "$ ipconfig.exe
-Windows IP Configuration
-Unknown adapter Clash:
-   Connection-specific DNS Suffix  . :
-"
-        }
-        _ => r#"{"message":"not match"}"#,
-    };
-
-    let msg = Message::new(topicRet.clone(), body, 0);
-    if let Err(e) = insMqtt.publish(msg) {
-        error!("Failed to send topic: {:?}", e);
-        process::exit(1);
+        info!("5s to send");
+        thread::sleep(Duration::from_secs(5));
     }
 }

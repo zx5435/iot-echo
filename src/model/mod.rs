@@ -1,1 +1,3 @@
-pub mod vo;
+mod vo;
+
+pub use self::vo::*;

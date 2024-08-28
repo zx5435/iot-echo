@@ -1,10 +1,10 @@
 [package]
-name = "mqtt-example"
+name = "iot-echo"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-paho-mqtt = { version = "0.12", default-features = false, features=["bundled"] }
+paho-mqtt = { version = "0.12.5", default-features = false, features=["bundled"] }
 log = "0.4.20"
 #
 serde = { version = "1.0.195", features = ["derive"] }
