@@ -1,3 +1,4 @@
-mod vo;
+mod config;
+mod params;
 
-pub use self::vo::*;
+pub use self::config::*;

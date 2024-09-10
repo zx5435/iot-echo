@@ -2,16 +2,18 @@
 
 // extern crate paho_mqtt as mqtt;
 
+mod data;
 mod handle;
 mod model;
 mod utils;
 
 use crate::handle::rpcHandle;
-use crate::utils::{getConn, get_cpu_mem, loadConfig};
+use crate::utils::{getConn, get_cpu_mem};
 use chrono::Local;
 use ctrlc;
 use env_logger::Builder;
 use log::{info, LevelFilter};
+use model::load_config;
 use paho_mqtt::{Client, Message};
 use std::collections::HashMap;
 use std::io::Write;
@@ -56,7 +58,7 @@ fn main() {
         .filter(None, LevelFilter::Info)
         .init();
 
-    let config = loadConfig();
+    let config = load_config();
     let (connCfg, connAuth) = getConn(&config);
 
     // Create a mqtt client.
@@ -140,7 +142,6 @@ fn main() {
         map.insert("cpu", cpu);
         map.insert("mem", mem);
         let json_str = serde_json::to_string(&map).unwrap();
-        println!("{}", json_str);
 
         let msg = Message::new(topic_update.clone(), json_str, 0);
         // if let Err(e) = insMqtt.publish(msg) {
