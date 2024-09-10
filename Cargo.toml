@@ -3,8 +3,12 @@ name = "iot-echo"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "iot-echo-helper"
+path = "src/iot-echo-helper.rs"
+
 [dependencies]
-paho-mqtt = { version = "0.12.5", default-features = false, features=["bundled"] }
+paho-mqtt = { version = "0.12.5", default-features = false, features = ["bundled"] }
 log = "0.4.20"
 #
 serde = { version = "1.0.195", features = ["derive"] }
@@ -17,3 +21,5 @@ chrono = "0.4.37"
 env_logger = "0.11.3"
 dirs = "5.0.1"
 ctrlc = "3.4.4"
+sysinfo = "0.31.4" # cpu mem
+serde_json = "1.0.128"

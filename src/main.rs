@@ -7,12 +7,13 @@ mod model;
 mod utils;
 
 use crate::handle::rpcHandle;
-use crate::utils::{getConn, loadConfig};
+use crate::utils::{getConn, get_cpu_mem, loadConfig};
 use chrono::Local;
 use ctrlc;
 use env_logger::Builder;
 use log::{info, LevelFilter};
 use paho_mqtt::{Client, Message};
+use std::collections::HashMap;
 use std::io::Write;
 use std::sync::mpsc::channel;
 use std::{process, thread, time::Duration};
@@ -134,13 +135,20 @@ fn main() {
         //         break;
         //     }
         // }
-        let _msg = Message::new(topic_update.clone(), r#"{"cpu": 9}"#, 0);
+        let (cpu, mem) = get_cpu_mem();
+        let mut map = HashMap::new();
+        map.insert("cpu", cpu);
+        map.insert("mem", mem);
+        let json_str = serde_json::to_string(&map).unwrap();
+        println!("{}", json_str);
+
+        let msg = Message::new(topic_update.clone(), json_str, 0);
         // if let Err(e) = insMqtt.publish(msg) {
         //     error!("Failed to send topic: {:?}", e);
         //     process::exit(1);
         // }
 
-        info!("5s to send");
+        info!("msg {}", msg);
         thread::sleep(Duration::from_secs(5));
     }
 }
