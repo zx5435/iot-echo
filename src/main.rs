@@ -22,6 +22,7 @@ use std::{process, thread, time::Duration};
 
 // Subscribe to a single topic.
 fn subscribe_topic(cli: &Client, topic: &str) {
+    info!("sub topic {}", topic);
     if let Err(e) = cli.subscribe(topic, 0) {
         info!("Failed to subscribes topic: {:?}", e);
         process::exit(1);
@@ -81,7 +82,6 @@ fn main() {
     let dn = config.device.deviceName;
     let sub_topic = format!("/{}/{}/user/get", pk, dn);
     subscribe_topic(&mqIns, &sub_topic);
-    info!("sub topic {}", sub_topic);
 
     // Publish to topic "/${productKey}/${deviceName}/user/get"
     let topic_update = format!("/{}/{}/user/update", pk, dn);
