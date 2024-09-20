@@ -1,12 +1,7 @@
-use std::any::Any;
 use std::collections::HashMap;
 use crate::model::{load_params, ParamsYml};
-
-// struct M1Val {
-//     ts: usize,
-//     sn: String,
-//     values: HashMap<String, dyn Any>,
-// }
+use indexmap::IndexMap;
+use serde_json::json;
 
 fn get_sn_all(sn: String, suffix: Option<String>) -> String {
     match suffix {
@@ -16,20 +11,30 @@ fn get_sn_all(sn: String, suffix: Option<String>) -> String {
 }
 
 pub fn fetch_params(cfg: ParamsYml) {
-    let sn = "test".to_string();
+    let sn_all = "test".to_string();
     println!("point num={}", cfg.attributes.len());
 
+    let mut map2 = HashMap::new();
+
     for point in cfg.attributes {
-        let sno = get_sn_all(sn.clone(), point.namespace);
+        let sn = get_sn_all(sn_all.clone(), point.namespace);
 
-        let mut map1: HashMap<String, Box<dyn Any>> = HashMap::new();
-        map1.insert("ts".to_string(), Box::new("qwe".to_string()));
-        map1.insert("sn".to_string(), Box::new(sno.clone()));
-        map1.insert("qwe".to_string(), Box::new(456));
+        let mut map1 = IndexMap::new();
+        map1.insert("ts".to_string(), json!("qwe".to_string()));
+        map1.insert("sn".to_string(), json!(sn.clone()));
+        map1.insert("qwe".to_string(), json!(456.5));
 
-        println!("{} {} {:#?}", sno, point.name, map1);
-        println!("{:#?}", map1.get("qwe").unwrap() as usize);
+        let s = serde_json::to_string(&map1);
+        println!("{}", s.unwrap());
+        map2.insert(sn, map1);
     }
+
+    for point in cfg.attributes {
+        let sn = get_sn_all(sn_all.clone(), point.namespace);
+        map2.get(sn);
+    }
+
+    println!("map2 = {:#?}", &map2);
 }
 
 mod tests {
